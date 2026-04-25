@@ -1,0 +1,40 @@
+name: KBO Lineup Polling
+
+on:
+  schedule:
+    - cron: '*/5 2-9 * * 1-5' # Weekdays 11 AM - 6 PM KST (UTC 02:00-09:00)
+    - cron: '*/5 2-5 * * 0,6' # Weekends 11 AM - 2 PM KST (UTC 02:00-05:00)
+  workflow_dispatch:
+
+jobs:
+  poll-lineup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to commit state back to the repo
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install requests pytz
+
+      - name: Run polling script
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_BOT_CHAT_ID: ${{ secrets.TELEGRAM_BOT_CHAT_ID }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+        run: python scripts/lineup_polling.py
+
+      - name: Commit state
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add last_article.txt || exit 0
+          git commit -m "update lineup polling state" || exit 0
+          git push
