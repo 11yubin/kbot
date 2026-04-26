@@ -58,12 +58,6 @@ def poll_lineup():
         print("No lineup article found yet.")
         return
 
-    # Check if this article link was already sent today to avoid double notification
-    # Stateless check: check last 5 messages in Telegram chat
-    if is_already_sent(lineup_article['link']):
-        print("Lineup already sent for this article.")
-        return
-
     # 2. Fetch and parse article content
     try:
         article_res = requests.get(lineup_article['link'])
@@ -110,33 +104,6 @@ def poll_lineup():
     )
     
     send_telegram(message)
-
-def is_already_sent(link_to_check):
-    token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    chat_id = os.environ.get("TELEGRAM_BOT_CHAT_ID")
-    if not token or not chat_id:
-        return False
-        
-    url = f"https://api.telegram.org/bot{token}/getUpdates"
-    # Note: getUpdates only works for new messages. 
-    # For a real production bot, we'd use a more robust way, 
-    # but since this script runs every 5 mins, even a simple local file or 
-    # checking the last few messages in the chat would be better.
-    # However, getUpdates is limited.
-    
-    # Alternative: Use a small file in the repo and commit it (GitHub Action can do this)
-    # or just trust the logic for now. 
-    # Let's try to check for a file named 'last_article.txt'.
-    if os.path.exists('last_article.txt'):
-        with open('last_article.txt', 'r') as f:
-            if f.read().strip() == link_to_check:
-                return True
-    
-    # Save the link to last_article.txt
-    with open('last_article.txt', 'w') as f:
-        f.write(link_to_check)
-        
-    return False
 
 def send_telegram(text):
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
