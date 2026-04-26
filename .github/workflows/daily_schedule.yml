@@ -3,7 +3,8 @@ name: Daily KBO Schedule Check
 
 on:
   schedule:
-    - cron: '0 1 * * *' # 10:00 AM KST (UTC 01:00)
+    - cron: '15 4 * * *'
+    # - cron: '0 1 * * *' # 10:00 AM KST (UTC 01:00)
   workflow_dispatch:
 
 jobs:

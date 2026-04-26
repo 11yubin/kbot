@@ -3,11 +3,8 @@ name: KBO Lineup Polling
 
 on:
   schedule:
-    # test용
-    - cron: '10 4 * * *'
-
-    # - cron: '*/5 2-9 * * 1-5' # Weekdays 11 AM - 6 PM KST (UTC 02:00-09:00)
-    # - cron: '*/5 2-5 * * 0,6' # Weekends 11 AM - 2 PM KST (UTC 02:00-05:00)
+    - cron: '*/5 2-9 * * 1-5' # Weekdays 11 AM - 6 PM KST (UTC 02:00-09:00)
+    - cron: '*/5 2-5 * * 0,6' # Weekends 11 AM - 2 PM KST (UTC 02:00-05:00)
   workflow_dispatch:
 
 jobs:
