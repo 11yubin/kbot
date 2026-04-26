@@ -1,3 +1,4 @@
+# .github/workflows/daily_schedule.yml
 name: Daily KBO Schedule Check
 
 on:
