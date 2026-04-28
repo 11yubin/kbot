@@ -6,7 +6,7 @@ services:
     container_name: n8n
     restart: unless-stopped
     ports:
-      - "5678:5678"
+      - "80:5678"
     env_file:
       - .env
     environment:
