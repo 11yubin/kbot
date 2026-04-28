@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    env_file:
+      - .env
+    environment:
+      - GENERIC_TIMEZONE=Asia/Seoul
+      - TZ=Asia/Seoul
+      - N8N_HOST=0.0.0.0
+      - N8N_EDITOR_BASE_URL=http://152.69.238.106:5678
+      - WEBHOOK_URL=http://152.69.238.106:5678
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:
