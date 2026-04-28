@@ -7,8 +7,9 @@ services:
     restart: unless-stopped
     ports:
       - "5678:5678"
-    environment:
+    env_file:
       - .env
+    environment:
       - GENERIC_TIMEZONE=Asia/Seoul
       - TZ=Asia/Seoul
     volumes:
