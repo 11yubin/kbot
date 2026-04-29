@@ -1,3 +1,4 @@
 .env
 .cursorignore
 .geminiignore
+.DS_Store
