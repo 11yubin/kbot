@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "chatId": "${ env.TELEGRAM_BOT_CHAT_ID }",
+        "chatId": "8282954323",
         "text": "=⚾ 한화 라인업 나왔다! 🦅  \n\n📝 선발투수: {{ $json.pitcher }}\n\n📋 타순\n{{ $json.lineup.map(p => `${p.order}번 ${p.position}: ${p.name}`).join('\\n') }}",
         "additionalFields": {}
       },
@@ -146,6 +146,15 @@
                 "type": "string",
                 "operation": "contains"
               }
+            },
+            {
+              "id": "hanwha-title-filter-001",
+              "leftValue": "={{ $json.title }}",
+              "rightValue": "한화",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
             }
           ],
           "combinator": "and"
@@ -242,7 +251,7 @@
         "responses": {
           "values": [
             {
-              "content": "=Extract the starting lineup from the Korean baseball article below.\n\nRules:\n- Output JSON only. No other text. Start your response with { and end with }. No markdown, no code blocks, no backticks.\n- Find the batting order from patterns like \"~순으로 라인업을 구성했다\", \"라인업은 ~이다.\"\n- Find the starting pitcher from \"선발투수는 X\"\n- If lineup exists: found=true, reason=\"정상\"\n- If game cancelled: found=false, reason=\"경기취소\"\n- If no lineup: found=false, reason=\"라인업없음\"\n\nOutput format:\n{\"found\": true, \"reason\": \"정상\", \"pitcher\": \"이름\", \"lineup\": [{\"order\": 1, \"position\": \"포지션\", \"name\": \"이름\"}, ...]}\n\nArticle:\n{{$json.text}}"
+              "content": "=Extract the starting lineup from the Korean baseball article below.\n\nRules:\n- Output JSON only. No other text. Start your response with { and end with }. No markdown, no code blocks, no backticks.\n- IMPORTANT: Extract ONLY 한화 이글스 lineup. If the article is primarily about another team's lineup (even if 한화 is mentioned), return {\"found\": false, \"reason\": \"라인업없음\"}.\n- Find the batting order from patterns like \"~순으로 라인업을 구성했다\", \"라인업은 ~이다.\"\n- Find the starting pitcher from \"선발투수는 X\"\n- If lineup exists: found=true, reason=\"정상\"\n- If game cancelled: found=false, reason=\"경기취소\"\n- If no lineup: found=false, reason=\"라인업없음\"\n\nOutput format:\n{\"found\": true, \"reason\": \"정상\", \"pitcher\": \"이름\", \"lineup\": [{\"order\": 1, \"position\": \"포지션\", \"name\": \"이름\"}, ...]}\n\nArticle:\n{{$json.text}}"
             }
           ]
         },
@@ -257,11 +266,115 @@
       ],
       "id": "b9cd2351-3e23-4d6f-aa41-ed27652b9d37",
       "name": "Message a model1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst kst = new Date(new Date().getTime() + 9 * 60 * 60 * 1000);\nconst today = kst.toISOString().slice(0, 10);\nif (staticData.lineup_sent_date === today || staticData.cancel_sent_date === today) {\n  return [];\n}\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        288
+      ],
+      "id": "lineup-dedup-check-001",
+      "name": "중복 체크"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst kst = new Date(new Date().getTime() + 9 * 60 * 60 * 1000);\nstaticData.lineup_sent_date = kst.toISOString().slice(0, 10);\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2840,
+        272
+      ],
+      "id": "lineup-mark-sent-001",
+      "name": "전송 완료 기록"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cancel-reason-check-001",
+              "leftValue": "={{ $json.reason }}",
+              "rightValue": "경기취소",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2464,
+        500
+      ],
+      "id": "cancel-check-node-001",
+      "name": "경기취소 여부"
+    },
+    {
+      "parameters": {
+        "chatId": "8282954323",
+        "text": "⚾ 오늘 한화 경기가 취소되었습니다 😢",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2640,
+        500
+      ],
+      "id": "cancel-telegram-node-001",
+      "name": "경기 취소 알림",
+      "credentials": {
+        "telegramApi": {
+          "id": "${ env.TELEGRAM_BOT_TOKEN}",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst kst = new Date(new Date().getTime() + 9 * 60 * 60 * 1000);\nstaticData.cancel_sent_date = kst.toISOString().slice(0, 10);\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2840,
+        500
+      ],
+      "id": "cancel-mark-sent-001",
+      "name": "취소 알림 기록"
     }
   ],
   "pinData": {},
   "connections": {
     "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "중복 체크",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "중복 체크": {
       "main": [
         [
           {
@@ -335,6 +448,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "경기취소 여부",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -354,6 +474,39 @@
         [
           {
             "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "전송 완료 기록",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "경기취소 여부": {
+      "main": [
+        [
+          {
+            "node": "경기 취소 알림",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "경기 취소 알림": {
+      "main": [
+        [
+          {
+            "node": "취소 알림 기록",
             "type": "main",
             "index": 0
           }
