@@ -9,7 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: 🚀 1단계 - 저장소 업데이트 및 Docker 컨테이너 실행ß
+      - name: 🚀 1단계 - 저장소 업데이트 및 Docker 컨테이너 실행
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -22,9 +22,8 @@ jobs:
             docker compose down
             docker compose -f docker-compose.prod.yml up -d
             
-            until docker exec n8n echo "ready" 2>/dev/null; do
-              sleep 1
-            done
+            echo "⏳ n8n 서버가 준비될 때까지 15초 대기합니다..."
+            sleep 15
 
       - name: 🔄 2단계 - n8n 워크플로우 최신화 (Import & Publish)
         uses: appleboy/ssh-action@v1.0.3
