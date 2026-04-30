@@ -9,6 +9,19 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: 🔍 SSH 접속 디버깅 (상세 로그 확인)
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "1. 서버 접근 가능(Ping) 테스트:"
+          ping -c 3 $SSH_HOST || echo "Ping 실패"
+          echo -e "\n2. SSH 상세 접속 테스트:"
+          ssh -v -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $SSH_USER@$SSH_HOST "echo 'SSH 접속 완전 성공!'" || echo "SSH 접속 실패"
       - name: 🚀 1단계 - 저장소 업데이트 및 Docker 컨테이너 실행
         uses: appleboy/ssh-action@v1.0.3
         with:
