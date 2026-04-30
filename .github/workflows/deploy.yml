@@ -17,13 +17,19 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ~/kbot
-            git pull
             
+            echo "▶️ Git Pull 실행 중..."
+            GIT_TERMINAL_PROMPT=0 git pull --no-rebase --no-edit
+            
+            echo "▶️ Docker Compose Down 실행 중..."
             docker compose down
+            
+            echo "▶️ Docker Compose Up 실행 중..."
             docker compose -f docker-compose.prod.yml up -d
             
             echo "⏳ n8n 서버가 준비될 때까지 15초 대기합니다..."
             sleep 15
+            echo "✅ 1단계 완료!"
 
       - name: 🔄 2단계 - n8n 워크플로우 최신화 (Import & Publish)
         uses: appleboy/ssh-action@v1.0.3
