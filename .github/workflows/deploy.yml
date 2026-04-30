@@ -1,4 +1,4 @@
-name: Deploy
+name: kbot Deploy
 
 on:
   push:
@@ -9,7 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: SSH 접속 후 배포
+      - name: 🚀 1단계 - 저장소 업데이트 및 Docker 컨테이너 실행ß
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -17,4 +17,41 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ~/kbot
-            ./deploy.sh
+            git pull
+            
+            docker compose down
+            docker compose -f docker-compose.prod.yml up -d
+            
+            until docker exec n8n echo "ready" 2>/dev/null; do
+              sleep 1
+            done
+
+      - name: 🔄 2단계 - n8n 워크플로우 최신화 (Import & Publish)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/kbot
+            for file in workflows/*.json; do
+              echo "📥 Importing $file..."
+              docker exec -i n8n n8n import:workflow --input=/dev/stdin < "$file"
+              
+              WORKFLOW_ID=$(python3 -c "import json, sys; print(json.load(open(sys.argv[1])).get('id', ''))" "$file")
+              
+              if [ -n "$WORKFLOW_ID" ]; then
+                echo "🚀 Publishing workflow ID: $WORKFLOW_ID"
+                docker exec -i n8n n8n publish:workflow --id="$WORKFLOW_ID"
+              fi
+            done
+
+      - name: ✅ 3단계 - n8n 재실행 및 완료 확인
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            docker restart n8n
+            echo "✅ 배포 및 활성화 완료"
