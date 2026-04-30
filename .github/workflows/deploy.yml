@@ -15,14 +15,15 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
           script: |
             cd ~/kbot
             
             echo "▶️ Git Pull 실행 중..."
-            GIT_TERMINAL_PROMPT=0 git pull --no-rebase --no-edit
+            timeout 15s git pull --no-rebase --no-edit || { echo "❌ Git Pull 실패 또는 타임아웃"; exit 1; }
             
             echo "▶️ Docker Compose Down 실행 중..."
-            docker compose down
+            timeout 30s docker compose down || { echo "❌ Docker Down 타임아웃"; exit 1; }
             
             echo "▶️ Docker Compose Up 실행 중..."
             docker compose -f docker-compose.prod.yml up -d
