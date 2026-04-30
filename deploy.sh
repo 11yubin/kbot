@@ -1,6 +1,9 @@
 #!/bin/bash
 git pull
 
+docker compose down
+docker compose -f docker-compose.prod.yml up -d
+
 docker exec -i n8n n8n import:workflow --input=/dev/stdin < workflows/check_schedule.json
 docker exec -i n8n n8n import:workflow --input=/dev/stdin < workflows/lineup_polling.json
 

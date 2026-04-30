@@ -87,6 +87,8 @@ def check_kbo_schedule():
         as_ = g['awayStarterName'] or '미정'
         all_lines.append(f"{g['awayTeamName']} {as_} vs {g['homeTeamName']} {hs} / {g['stadium']}, {t}")
 
+    game_link = f"https://sports.naver.com/game/{hw['gameId']}/record"
+
     message = (
         f"⚾ 오늘 한화 경기 있어요! 신한 SOL뱅크 경기예측 & 비더레전드 GOGO!\n\n"
         f"📅 {now.month}월 {now.day}일\n"
@@ -96,7 +98,7 @@ def check_kbo_schedule():
         f"⚾ 한화 {hw_starter} vs {opponent} {opp_starter}\n\n"
         f"📋 오늘 KBO 전체\n"
         + "\n".join(all_lines) +
-        "\n\n라인업 나오면 다시 알려드릴게요 👀"
+        f"\n\n라인업 나오면 다시 알려드릴게요 👀\n🔗 {game_link}"
     )
     send_telegram(message)
 
