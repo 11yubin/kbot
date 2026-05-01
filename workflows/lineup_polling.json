@@ -3,49 +3,31 @@
   "nodes": [
     {
       "parameters": {
-        "chatId": "8282954323",
-        "text": "=⚾ 한화 라인업 나왔다! 🦅  \n\n📝 선발투수: {{ $json.pitcher }}\n\n📋 타순\n{{ $json.lineup.map(p => `${p.order}번 ${p.position}: ${p.name}`).join('\\n') }}",
-        "additionalFields": {}
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "8282954323"
+            },
+            {
+              "name": "text",
+              "value": "=⚾ 한화 라인업 나왔다! 🦅\n\n📝 선발투수: {{ $json.pitcher }}\n\n📋 타순\n{{ $json.lineup.map(p => `${p.order}번 ${p.position}: ${p.name}`).join('\\n') }}\n\n🔗 {{ $json.link }}"
+            }
+          ]
+        },
+        "options": {}
       },
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
       "position": [
         2640,
         272
       ],
       "id": "a7d0fb1d-1822-4f7d-a644-a2752ee7d9e9",
-      "name": "Send a text message",
-      "webhookId": "f0b0ee6a-a5a0-4a24-97b4-93a3e3ef7f37",
-      "credentials": {
-        "telegramApi": {
-          "id": "${ env.TELEGRAM_BOT_TOKEN}",
-          "name": "Telegram account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "cronExpression",
-              "expression": "*/5 15,16,17,18 * * 1-5"
-            },
-            {
-              "field": "cronExpression",
-              "expression": "*/5 11,12,13,14 * * 0,6"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.3,
-      "position": [
-        512,
-        288
-      ],
-      "id": "bcf439d9-2b8a-4c6e-ac53-4e4496402924",
-      "name": "Schedule Trigger"
+      "name": "Send a text message"
     },
     {
       "parameters": {
@@ -60,20 +42,6 @@
       ],
       "id": "ce96e6b0-3d7a-43e7-86df-721ffbceee1c",
       "name": "HTTP Request1"
-    },
-    {
-      "parameters": {
-        "fieldToSplitOut": "items",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.splitOut",
-      "typeVersion": 1,
-      "position": [
-        1104,
-        288
-      ],
-      "id": "23dd3d4a-06dd-4dd2-b056-3db1133f149f",
-      "name": "Split Out"
     },
     {
       "parameters": {
@@ -118,59 +86,6 @@
       ],
       "id": "115926b3-1b00-4c03-80e4-d499bb846721",
       "name": "기사 탐색"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 3
-          },
-          "conditions": [
-            {
-              "id": "60cbf2f3-8ecc-4bad-9034-7cae145819b4",
-              "leftValue": "={{ $json.link }}",
-              "rightValue": "kbaseball",
-              "operator": {
-                "type": "string",
-                "operation": "contains"
-              }
-            },
-            {
-              "id": "4149cfba-f88d-4136-bffd-a2ec73e8a691",
-              "leftValue": "={{ $json.title }}{{ $json.description }}",
-              "rightValue": "라인업",
-              "operator": {
-                "type": "string",
-                "operation": "contains"
-              }
-            },
-            {
-              "id": "hanwha-title-filter-001",
-              "leftValue": "={{ $json.title }}",
-              "rightValue": "한화",
-              "operator": {
-                "type": "string",
-                "operation": "contains"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {
-          "ignoreCase": false
-        }
-      },
-      "type": "n8n-nodes-base.filter",
-      "typeVersion": 2.3,
-      "position": [
-        1312,
-        288
-      ],
-      "id": "acfc2296-1af8-42c4-947b-123c7582d4f2",
-      "name": "라인업 여부 탐색"
     },
     {
       "parameters": {
@@ -229,7 +144,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const content = $input.first().json.output[0].content[0].text;\nconst parsed = JSON.parse(content);\nreturn [{ json: parsed }];"
+        "jsCode": "const content = $input.first().json.output[0].content[0].text;\nconst parsed = JSON.parse(content);\nconst link = $('기사 필터링 (코드)').first().json.link;\nreturn [{ json: { ...parsed, link } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -266,19 +181,6 @@
       ],
       "id": "b9cd2351-3e23-4d6f-aa41-ed27652b9d37",
       "name": "Message a model1"
-    },
-    {
-      "parameters": {
-        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst kst = new Date(new Date().getTime() + 9 * 60 * 60 * 1000);\nconst today = kst.toISOString().slice(0, 10);\nif (staticData.lineup_sent_date === today || staticData.cancel_sent_date === today) {\n  return [];\n}\nreturn $input.all();"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        704,
-        288
-      ],
-      "id": "lineup-dedup-check-001",
-      "name": "중복 체크"
     },
     {
       "parameters": {
@@ -328,24 +230,31 @@
     },
     {
       "parameters": {
-        "chatId": "8282954323",
-        "text": "⚾ 오늘 한화 경기가 취소되었습니다 😢",
-        "additionalFields": {}
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "8282954323"
+            },
+            {
+              "name": "text",
+              "value": "⚾ 오늘 한화 경기가 취소되었습니다 😢"
+            }
+          ]
+        },
+        "options": {}
       },
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
       "position": [
         2640,
         500
       ],
       "id": "cancel-telegram-node-001",
-      "name": "경기 취소 알림",
-      "credentials": {
-        "telegramApi": {
-          "id": "${ env.TELEGRAM_BOT_TOKEN}",
-          "name": "Telegram account"
-        }
-      }
+      "name": "경기 취소 알림"
     },
     {
       "parameters": {
@@ -359,22 +268,128 @@
       ],
       "id": "cancel-mark-sent-001",
       "name": "취소 알림 기록"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        512,
+        288
+      ],
+      "id": "execute-trigger-001",
+      "name": "Execute Workflow Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.first().json.items || [];\nfor (const item of items) {\n  const title = item.title || '';\n  const desc = item.description || '';\n  const link = item.link || '';\n  \n  if (link.includes('kbaseball') && \n      (title.includes('라인업') || desc.includes('라인업')) &&\n      title.includes('한화')) {\n    return [{ json: { found: true, link: link } }];\n  }\n}\nreturn [{ json: { found: false } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        288
+      ],
+      "id": "find-article-code-001",
+      "name": "기사 필터링 (코드)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {},
+          "conditions": [
+            {
+              "id": "if-found-001",
+              "leftValue": "={{ $json.found }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1312,
+        288
+      ],
+      "id": "if-article-found-001",
+      "name": "기사 발견?"
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        500
+      ],
+      "id": "wait-loop-001",
+      "name": "5분 대기"
     }
   ],
   "pinData": {},
   "connections": {
-    "Schedule Trigger": {
+    "Execute Workflow Trigger": {
       "main": [
         [
           {
-            "node": "중복 체크",
+            "node": "기사 탐색",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "중복 체크": {
+    "기사 탐색": {
+      "main": [
+        [
+          {
+            "node": "기사 필터링 (코드)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "기사 필터링 (코드)": {
+      "main": [
+        [
+          {
+            "node": "기사 발견?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "기사 발견?": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "5분 대기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5분 대기": {
       "main": [
         [
           {
@@ -396,44 +411,33 @@
         ]
       ]
     },
-    "Split Out": {
-      "main": [
-        [
-          {
-            "node": "라인업 여부 탐색",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "기사 탐색": {
-      "main": [
-        [
-          {
-            "node": "Split Out",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "라인업 여부 탐색": {
-      "main": [
-        [
-          {
-            "node": "HTTP Request1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Code in JavaScript1": {
       "main": [
         [
           {
             "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
             "type": "main",
             "index": 0
           }
@@ -458,28 +462,6 @@
         ]
       ]
     },
-    "Code in JavaScript": {
-      "main": [
-        [
-          {
-            "node": "If",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Message a model1": {
-      "main": [
-        [
-          {
-            "node": "Code in JavaScript",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Send a text message": {
       "main": [
         [
@@ -496,6 +478,13 @@
         [
           {
             "node": "경기 취소 알림",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "5분 대기",
             "type": "main",
             "index": 0
           }

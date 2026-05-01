@@ -12,6 +12,7 @@ services:
     environment:
       - GENERIC_TIMEZONE=Asia/Seoul
       - TZ=Asia/Seoul
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - NAVER_CLIENT_ID=${NAVER_CLIENT_ID}
       - NAVER_CLIENT_SECRET=${NAVER_CLIENT_SECRET}
       - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
