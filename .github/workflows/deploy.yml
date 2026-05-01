@@ -9,20 +9,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: 🔍 SSH 접속 디버깅 (상세 로그 확인)
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          echo "1. 서버 접근 가능(Ping) 테스트:"
-          ping -c 3 $SSH_HOST || echo "Ping 실패"
-          echo -e "\n2. SSH 상세 접속 테스트:"
-          ssh -v -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $SSH_USER@$SSH_HOST "echo 'SSH 접속 완전 성공!'" || echo "SSH 접속 실패"
-      - name: 🚀 1단계 - 저장소 업데이트 및 Docker 컨테이너 실행
+      - name: ⬇️ 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 🚀 1단계 - 서버 업데이트 및 Docker 재시작
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -31,46 +21,42 @@ jobs:
           script_stop: true
           script: |
             cd ~/kbot
-            
+
             echo "▶️ Git Pull 실행 중..."
-            timeout 15s git pull --no-rebase --no-edit || { echo "❌ Git Pull 실패 또는 타임아웃"; exit 1; }
-            
+            timeout 60s git pull --no-rebase --no-edit || { echo "❌ Git Pull 실패 또는 타임아웃"; exit 1; }
+
             echo "▶️ Docker Compose Down 실행 중..."
             timeout 30s docker compose down || { echo "❌ Docker Down 타임아웃"; exit 1; }
-            
+
             echo "▶️ Docker Compose Up 실행 중..."
             docker compose -f docker-compose.prod.yml up -d
-            
+
             echo "⏳ n8n 서버가 준비될 때까지 15초 대기합니다..."
             sleep 15
             echo "✅ 1단계 완료!"
 
-      - name: 🔄 2단계 - n8n 워크플로우 최신화 (Import & Publish)
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd ~/kbot
-            for file in workflows/*.json; do
-              echo "📥 Importing $file..."
-              docker exec -i n8n n8n import:workflow --input=/dev/stdin < "$file"
-              
-              WORKFLOW_ID=$(python3 -c "import json, sys; print(json.load(open(sys.argv[1])).get('id', ''))" "$file")
-              
-              if [ -n "$WORKFLOW_ID" ]; then
-                echo "🚀 Publishing workflow ID: $WORKFLOW_ID"
-                docker exec -i n8n n8n publish:workflow --id="$WORKFLOW_ID"
-              fi
-            done
+      - name: 🔄 2단계 - n8n 워크플로우 최신화 (REST API)
+        env:
+          N8N_API_KEY: ${{ secrets.N8N_API_KEY }}
+          N8N_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          for file in workflows/*.json; do
+            WORKFLOW_ID=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('id',''))" "$file")
 
-      - name: ✅ 3단계 - n8n 재실행 및 완료 확인
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            docker restart n8n
-            echo "✅ 배포 및 활성화 완료"
+            if [ -z "$WORKFLOW_ID" ]; then
+              echo "⚠️  ID 없음, 건너뜀: $file"
+              continue
+            fi
+
+            echo "📥 업데이트 중: $WORKFLOW_ID ($file)..."
+            curl -sf -X PUT "http://${N8N_HOST}/api/v1/workflows/${WORKFLOW_ID}" \
+              -H "X-N8N-API-KEY: ${N8N_API_KEY}" \
+              -H "Content-Type: application/json" \
+              -d @"$file" || { echo "❌ 업데이트 실패: $WORKFLOW_ID"; exit 1; }
+
+            echo "🚀 활성화 중: $WORKFLOW_ID..."
+            curl -sf -X POST "http://${N8N_HOST}/api/v1/workflows/${WORKFLOW_ID}/activate" \
+              -H "X-N8N-API-KEY: ${N8N_API_KEY}" || { echo "❌ 활성화 실패: $WORKFLOW_ID"; exit 1; }
+
+            echo "✅ 완료: $WORKFLOW_ID"
+          done
