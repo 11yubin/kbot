@@ -78,7 +78,7 @@ def run() -> None:
             f"⚾ 한화 라인업 나왔다! 🦅\n\n"
             f"📝 선발투수: {pitcher}\n\n"
             f"📋 타순\n{lineup_str}\n\n"
-            f"🔗 {article['link']}"
+            f"🔗 기사 링크: {article['link']}"
         )
         s["lineup_sent"] = True
         state.save(s)
