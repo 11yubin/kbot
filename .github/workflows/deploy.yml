@@ -12,7 +12,7 @@ jobs:
       - name: ⬇️ 코드 체크아웃
         uses: actions/checkout@v4
 
-      - name: 🚀 1단계 - 서버 업데이트 및 Docker 재시작
+      - name: 🚀 서버 업데이트 및 kbo-bot 재시작
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -25,38 +25,7 @@ jobs:
             echo "▶️ Git Pull 실행 중..."
             timeout 60s git pull --no-rebase --no-edit || { echo "❌ Git Pull 실패 또는 타임아웃"; exit 1; }
 
-            echo "▶️ Docker Compose Down 실행 중..."
-            timeout 30s docker compose down || { echo "❌ Docker Down 타임아웃"; exit 1; }
+            echo "▶️ kbo-bot 재빌드 및 재시작..."
+            docker compose -f docker-compose.prod.yml up -d --build kbo-bot || { echo "❌ kbo-bot 시작 실패"; exit 1; }
 
-            echo "▶️ Docker Compose Up 실행 중..."
-            docker compose -f docker-compose.prod.yml up -d
-
-            echo "⏳ n8n 서버가 준비될 때까지 15초 대기합니다..."
-            sleep 15
-            echo "✅ 1단계 완료!"
-
-      - name: 🔄 2단계 - n8n 워크플로우 최신화 (REST API)
-        env:
-          N8N_API_KEY: ${{ secrets.N8N_API_KEY }}
-          N8N_HOST: ${{ secrets.SSH_HOST }}
-        run: |
-          for file in workflows/*.json; do
-            WORKFLOW_ID=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('id',''))" "$file")
-
-            if [ -z "$WORKFLOW_ID" ]; then
-              echo "⚠️  ID 없음, 건너뜀: $file"
-              continue
-            fi
-
-            echo "📥 업데이트 중: $WORKFLOW_ID ($file)..."
-            curl -sf -X PUT "http://${N8N_HOST}/api/v1/workflows/${WORKFLOW_ID}" \
-              -H "X-N8N-API-KEY: ${N8N_API_KEY}" \
-              -H "Content-Type: application/json" \
-              -d @"$file" || { echo "❌ 업데이트 실패: $WORKFLOW_ID"; exit 1; }
-
-            echo "🚀 활성화 중: $WORKFLOW_ID..."
-            curl -sf -X POST "http://${N8N_HOST}/api/v1/workflows/${WORKFLOW_ID}/activate" \
-              -H "X-N8N-API-KEY: ${N8N_API_KEY}" || { echo "❌ 활성화 실패: $WORKFLOW_ID"; exit 1; }
-
-            echo "✅ 완료: $WORKFLOW_ID"
-          done
+            echo "✅ 배포 완료!"

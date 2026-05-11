@@ -22,5 +22,22 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
 
+  kbo-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.kbot
+    container_name: kbo-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Seoul
+    volumes:
+      - kbo_state:/data
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
 volumes:
   n8n_data:
+  kbo_state:
