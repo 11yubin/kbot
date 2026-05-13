@@ -1,9 +1,20 @@
 import os
 import re
 import requests
+from datetime import datetime, timezone, timedelta
+from email.utils import parsedate_to_datetime
 
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
+KST = timezone(timedelta(hours=9))
+
+
+def _is_today(pub_date: str) -> bool:
+    try:
+        dt = parsedate_to_datetime(pub_date).astimezone(KST)
+        return dt.date() == datetime.now(KST).date()
+    except Exception:
+        return False
 
 
 def search_lineup_article() -> dict | None:
@@ -23,8 +34,12 @@ def search_lineup_article() -> dict | None:
         title = item.get("title", "")
         desc = item.get("description", "")
         link = item.get("link", "")
-        if "kbaseball" in link and "한화" in title and (
-            "라인업" in title or "라인업" in desc
+        pub_date = item.get("pubDate", "")
+        if (
+            "kbaseball" in link
+            and "한화" in title
+            and ("라인업" in title or "라인업" in desc)
+            and _is_today(pub_date)
         ):
             return {"link": link}
     return None
