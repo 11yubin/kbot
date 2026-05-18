@@ -1,24 +1,6 @@
 version: '3.8'
 
 services:
-  n8n:
-    image: n8nio/n8n:latest
-    container_name: n8n
-    restart: unless-stopped
-    ports:
-      - "5678:5678"
-    env_file:
-      - .env
-    environment:
-      - GENERIC_TIMEZONE=Asia/Seoul
-      - TZ=Asia/Seoul
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - NAVER_CLIENT_ID=${NAVER_CLIENT_ID}
-      - NAVER_CLIENT_SECRET=${NAVER_CLIENT_SECRET}
-      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
-    volumes:
-      - n8n_data:/home/node/.n8n
-
   kbo-bot:
     build:
       context: .
@@ -36,5 +18,4 @@ services:
       - 8.8.4.4
 
 volumes:
-  n8n_data:
   kbo_state:
