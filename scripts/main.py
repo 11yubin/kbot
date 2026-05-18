@@ -5,6 +5,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 import check_schedule
 import lineup_polling
+import bot_commands
 
 logging.basicConfig(
     level=logging.INFO,
@@ -15,6 +16,8 @@ log = logging.getLogger(__name__)
 
 
 def main() -> None:
+    bot_commands.start()
+
     scheduler = BlockingScheduler(timezone="Asia/Seoul")
 
     scheduler.add_job(

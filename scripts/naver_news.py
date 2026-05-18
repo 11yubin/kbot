@@ -17,11 +17,11 @@ def _is_today(pub_date: str) -> bool:
         return False
 
 
-def search_lineup_article() -> dict | None:
-    """한화 라인업 기사를 검색해 발견 시 {"link": ...} 반환, 없으면 None."""
+def search_lineup_article(team_short: str) -> dict | None:
+    """팀 약칭(예: '한화', 'KIA')으로 라인업 기사 검색. 발견 시 {"link": ...} 반환."""
     resp = requests.get(
         "https://openapi.naver.com/v1/search/news.json",
-        params={"query": "한화 이글스 라인업", "display": 10, "sort": "date"},
+        params={"query": f"{team_short} 라인업", "display": 10, "sort": "date"},
         headers={
             "X-Naver-Client-Id": NAVER_CLIENT_ID,
             "X-Naver-Client-Secret": NAVER_CLIENT_SECRET,
@@ -37,7 +37,7 @@ def search_lineup_article() -> dict | None:
         pub_date = item.get("pubDate", "")
         if (
             "kbaseball" in link
-            and "한화" in title
+            and team_short in title
             and ("라인업" in title or "라인업" in desc)
             and _is_today(pub_date)
         ):
